@@ -1,6 +1,4 @@
-# .github/workflows/cpp-ci.yml
-
-name: C++ CI
+name: C++ CI/CD
 
 on:
   push:
@@ -16,18 +14,53 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y clang clang-tidy g++
+      run: sudo apt-get update && sudo apt-get install -y g++
 
-    - name: Compile the application
-      run: g++ -o HelloWorld main.cpp
+    - name: Build the application
+      run: g++ main.cpp -o HelloWorld
+
+    #- name: Build the tests
+    #  run: g++ test.cpp -o tests
 
     - name: Run the application
       run: ./HelloWorld
 
     - name: Run clang-tidy
-      run: clang-tidy main.cpp -- -std=c++17
+      run: clang-tidy main.cpp -- -std=c++17    
+
+    - name: Zip the executable
+      run: zip setup.zip HelloWorld
+      
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: setup-zip
+        path: ./setup.zip
+
+    #- name: Run the tests
+    #  run: ./tests && echo "All tests passed!"
+  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download build artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: setup-zip
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1  
+      env:
+        GITHUB_TOKEN: ${{ secrets.SUPERSECRET }}
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: "Release v1.0.${{ github.run_number }}"
+        draft: false
+        prerelease: false
 
     
